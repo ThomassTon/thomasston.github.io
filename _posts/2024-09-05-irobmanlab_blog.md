@@ -1,15 +1,68 @@
 ---
-layout: post
+layout: distill
 title: Multi-Robot Pick and Place
 date: 2024-09-05 
 # description: an example of a blog post with some math
 tags: lab project
 # categories: sample-posts
 related_posts: false
+featured: true
+
+
+toc:
+  - name: Introduction
+  - name: Background
+    # - name: optimization-based methods
+    subsections:
+        - name: sampling-based motion planning
+        - name: optimization-based motion planning
+        - name: KOMO and ST-RRT*
+  - name: Implementation
 ---
 
-For this project, we need to implement the simultaneous manipulation of two objects using two Franka robotic arms in a simulation environment. The project utilizes the KOMO optimizer and bi-RRT for planning the motion paths of the robotic arms.
 
+
+## 1. Introduction
+
+In certain robotic applications, there are scenarios where a single robotic arm may struggle to perform tasks, such as handling a large object or a flexible item. In such cases, two or more robotic arms need to collaborate in order to accomplish the task efficiently.
+
+In this work, we assume the use of two robotic arms working collaboratively to perform motion planning based on the given initial and target positions of the object to be grasped. Additionally, due to limitations of the simulation framework, the grasping is accomplished through a linking mechanism. In the environmental setup, we also assume that the obstacles remain stationary.
+
+---
+
+## 2. Background
+Motion planning is the process of determining a feasible path or sequence of movements for a robot (or other agents) to achieve a specific task while avoiding obstacles and respecting constraints like joint limits, collision avoidance, and smoothness of the motion.
+
+Motion planning can be broadly categorized into two types: optimization-based methods and sampling-based methods.
+
+### 2.1 sampling-based motion planning
+sampling-based motion planning constructs feasible paths for a robot by randomly sampling points in the robot's configuration space (C-space) and connecting these points to form a valid path from the start to the goal, common approaches include RRT, RRT*, and Bi-RRT.
+
+- **RRT** incrementally builds a tree-like structure that explores the space by randomly sampling points and connecting them to the existing tree. Thereby finding a collision-free path. With a sufficient number of samples, it's possible to find a path, though it may not necessarily be the optimal one.
+
+- **RRT\*** is an optimized version of RRT. After a vertex has been connected to the cheapest neighbor, the neighbors are again examined. Neighbors are checked if being rewired to the newly added vertex will make their cost decrease. If the cost does indeed decrease, the neighbor is rewired to the newly added vertex.
+
+- **(Bi-RRT)** is an enhanced version of the RRT algorithm. Bi-RRT grows two trees simultaneously,i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
+
+### 2.2 optimization-based motion planning
+
+Instead of searching for a path first (like in sampling-based methods), the optimization-based motion planning optimizes the motion directly by minimizing or maximizing a specific objective function, such as minimizing travel time, energy, or avoiding obstacles. Common optimization-based methods include KOMO, CHOMP, and STOMP. 
+
+- **KOMO** means k-order markov optimization. KOMO is a way to formulate path optimization problems.[1] 
+
+- **CHOMP (Covariant Hamiltonian Optimization for Motion Planning)** is a method for trajectory optimization invariant to reparametrization. CHOMP uses functional gradient techniques to iteratively improve the quality of an initial trajectory, optimizing a functional that trades off between a smoothness and an obstacle avoidance component.[2]
+
+- **STOMP** is a stochastic trajectory optimazation framework. The approach relies on generating nosiy trajectories to explore the space around an initial trajectory, which are then combined to produced an updated trajectory wit lower cost.[3]
+
+
+
+
+### 2.3 KOMO and ST-RRT*
+
+In this project, we utilized two motion planning methods: one is the optimization-based KOMO, and the other is the sampling-based ST-RRT*.
+
+
+### 2.3.1 KOMO
 **k-order Markov Optimization** is a method used in decision-making processes where the current decision depends not just on the immediate previous state (as in a first-order Markov process) but on a sequence of previous states, up to k steps in the past:
 
 $$
@@ -44,11 +97,11 @@ $$
 
 Specifically:
 
-$$\lambda_{1}$$ controls the first-order smoothness (to prevent excessive changes in joint angles between consecutive time steps).
+- $$\lambda_{1}$$ controls the first-order smoothness (to prevent excessive changes in joint angles between consecutive time steps).
 
-$$\lambda_{2}$$ controls second-order smoothness (to avoid abrupt changes in acceleration or angular velocity).
+- $$\lambda_{2}$$ controls second-order smoothness (to avoid abrupt changes in acceleration or angular velocity).
 
-$$\theta_{t} - 2\theta_{t-1} + \theta_{t-2}$$ approximately describes the change in acceleration of the joint angles.
+- $$\theta_{t} - 2\theta_{t-1} + \theta_{t-2}$$ approximately describes the change in acceleration of the joint angles.
 
 The final total cost function is:
 
@@ -64,65 +117,62 @@ $$
 \min_{\theta_{t}, \theta_{t-1}, \theta_{t-2}} J
 $$
 
-**Bi-directional Rapidly-exploring Random Tree (Bi-RRT)** is an enhanced version of the Rapidly-exploring Random Tree (RRT) algorithm. 
-Unlike the standard RRT, which grows a single tree from the start to explore the space, Bi-RRT grows two trees simultaneously,i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
-Both trees expand alternately by randomly sampling points in the space and attempting to extend the trees towards those points. Once the two trees are connected, a valid path is formed that goes from the start, through the nodes of the first tree, to the connecting point, and then through the nodes of the second tree to the goal.
+### 2.3.2 ST-RRT*
+ST-RRT* [4]is an advanced motion planning algorithm specifically designed for dynamic environments, where both spatial and temporal dimensions need to be considered. Its primary goal is to find paths that satisfy velocity constraints while minimizing arrival time. 
+
+Unlike traditional methods that only plan in a configuration space (Q), ST-RRT* adds a time dimension, forming a space-time state space denoted as $$X = Q \times T$$, where $$Q$$ represents the configuration space and $$T$$ represents the time dimension.
+
+ST-RRT* builds on the dual-tree RRT-Connect framework but introduces several key modifications to handle unbounded time spaces and optimize arrival time: 
+
+- **Progressive Goal Region Expansion:** ST-RRT* uses a progressive expansion strategy that gradually increases the sampled time range while ensuring sufficient sample density through batch sampling. The initial time range **B.timeRange** and batch size **B.batchSize** are set. As the algorithm progresses, the time range is expanded by a factor (P.rangeFactor) to include a larger time horizon, allowing the planner to explore more of the time dimension.
+
+- **Conditional Sampling:** Only the intersection of start and goal velocity cones is sampled. This greatly improves efficiency by reducing unnecessary exploration of infeasible areas.
+
+- **Simplified Rewiring:** Like RRT*, ST-RRT* optimizes paths by rewiring nodes in the tree. After extending the tree with a new node x_new, the goal tree is rewired to ensure that the path to the goal minimizes arrival time.
+
+As shown in the figure below, the orange area represents the goal region, and the blue dashed line is an initial estimate of the feasible goal time:
+- (a) Using the initial batch of samples, no solution was found.
+- (b) The upper bound of the time space (represented by the dashed line) is expanded, allowing more goal nodes to be sampled, and both trees continue to grow.
+- (c) An initial solution is found (shown in orange), and the upper time bound is reduced accordingly.
+- (d) Tree branches that can no longer contribute to an improved solution are pruned (shown with lower opacity), leading to the final solution after convergence.
 
 <div class="col-sm mt-3 mt-md-0">
-        {% include figure.liquid loading="eager" path="assets/img/rrt_img.png" class="img-fluid rounded z-depth-1" %}
+        {% include figure.liquid loading="eager" path="assets/img/st-rrt.png" class="img-fluid rounded z-depth-1" %}
 </div>
 
-**Setting up the simulation environment:**
+---
 
-Typically, we need to configure the initial position of the objects to be grasped, the target positions, and also the placement of the robotic arms.
+## 3. Implementation
 
-For the **objects** to be grasped, we need to define the coordinates and the rotational angles using quaternions. For the initial position, "contact" should be set to 1 for collision detection, while for the target position, it should be set to 0.
+In this section, we will introduce how to achieve dual-arm collaborative object transportation. The process can be divided into three main steps: scene setup, task planning, and motion planning.
+
+### 3.1 Scene Setup
+Here, we will set the initial position and target location of the object to be grasped, as well as the fixed positions of any obstacles. Additionally, the positions of the two robots need to be defined. Typically, the robots are placed at a slightly greater distance from each other to prevent collisions while grasping the same object.
+
+In this case, the first three elements of Q represent the displacement coordinates along the x, y, and z axes, while the last four elements represent the rotation angles using quaternions. Additionally, setting `contact` to 1 enables collision detection.
 
 ```PHP
+_obstacle (bin1){ type:ssBox, size:[0.2 0.2 0.1 .01], contact:1 Q:<[ -0, 0, 0.5, 1, 0, .0, 0]> color:[0.9, 0.9, 0.9, 1]}
+
 goal1 (bin1){ joint:rigid type:ssBox, size:[0.1 0.1 0.1 .01], contact:0 Q:<[  0, 0.0, 0.13, 1., 0., .0, 0]> color:[0.4, 1, 1, 0.2]}
 goal2 (bin1){ joint:rigid type:ssBox, size:[0.1 0.1 0.1 .01], contact:0 Q:<[  0, 0.0, 0.23, 1., 0., .0, 0]> color:[0.4, 1, 1, 0.2]}
-goal3 (bin2){ joint:rigid type:ssBox, size:[0.20 0.20 0.1 .01], contact:0 Q:<[  0, 0.05, 0.03, 1., 0., .0, 0]> color:[0.4, 1, 1, 0.2]}
 
-obj3 (bin1){ joint:rigid type:ssBox, size:[0.20 0.20 0.1 .01], contact:1 Q:<[ 0, -0., 0.03, 1, 0, .0, 0]> color:[0.4, 1, 1, 1]}
 obj2 (bin2){ joint:rigid type:ssBox, size:[0.1 0.1 0.1 .01], contact:1 Q:<[  -0., -0.15, 0.03, 1, 0, .0, 0]> color:[0.4, 1, 1, 1]}
 obj1 (bin2){ joint:rigid type:ssBox, size:[0.1 0.1 0.1 .01], contact:1 Q:<[  -0., -0.01, 0.03, 1, 0, .0, 0]> color:[0.4, 1, 1, 1]}
 ```
 
-For the robotic arms, we need to configure their placement positions as well as the initial position of each joint. Typically, the distance between the two arms should be set large enough to avoid joint collisions when grasping the same object.
-```c++
 
-const arrA basePos = {
-    {-0.8, 0.0, 0.00},
-    {0.8, 0.0, 0.0}
-};
+### 3.2 Task Planning
+Task planning refers to the process of determining the sequence of high-level actions or tasks that a robot (or a group of robots) must perform to achieve a specific goal.
 
-const arrA baseQuat = {
-    {1, 0, 0, 0},
-    {0, 0, 0, 1},
-    {0.924, 0, 0, -0.383},
-    {-0.383, 0, 0, 0.924},
-};
-
-for (uint i = 0; i < 2; i++)
-{
-    auto *a = C.addFile("./in/franka.g");
-    C.reconfigureRoot(a, true);
-    a->linkFrom(C["table"]);
-    const rai::String prefix = STRING('a' << i << '_');
-    a->prefixSubtree(prefix);
-    const rai::String agentBase = STRING(prefix << "base");
-    C[agentBase]->setRelativePosition(basePos(i));
-    C[agentBase]->setQuaternion(baseQuat(i));
-    setActive(C, std::string(prefix.p));
-    arr state = C.getJointState();
-    C.setJointState(state);
-}
-```
+Common methods for Task Sequence Planning include Greedy Search, Random Search, and Simulated Annealing Search. **Greedy search** is a locally optimal strategy that, at each step, selects the best immediate option without considering future consequences. **Random search** generates task sequences randomly, evaluates their performance, and selects the best-performing sequence. It does not rely on selecting the best option at each step, instead exploring different combinations of task sequences randomly. **Simulated annealing** is inspired by the physical process of annealing in metallurgy, the algorithm initially allows the acceptance of worse solutions (higher “temperature”) to escape local optima. As the search progresses, the “temperature” is gradually lowered, and the algorithm becomes more likely to accept only better solutions, converging toward a global optimum.
 
 
-In the **task plan**, since this project involves two robotic arms completing a task simultaneously, there is no need to account for the Traveling Salesman Problem. The tasks can simply be assigned in sequence, i.e., {task_{1}(robot_{1}, robot_{2}), task_{2}(robot_{1}, robot_{2})}.  
+However, in our work, there is no need for complex task planning. Instead, we directly use the sequence of objects as the task sequence. Here, a task represents the movement of a robotic arm from position A to position B. For example, moving the arm from the initial position to the position where it can grasp an object constitutes a task. The content of the task is determined by the joint configurations that correspond to the target positions of the robot's end effector. For example, if two objects need to be transported, this results in four tasks.
 
-Here, a task represents the movement of a robotic arm from position A to position B. For example, moving the arm from the initial position to the position where it can grasp an object constitutes a task. The content of the task is determined by the joint configurations that correspond to the target positions of the robot's end effector.
+
+### 3.3 Motion Planning
+
 
 In this project, we use the **KOMO** optimizer to solve the inverse kinematics:
 
