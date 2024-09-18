@@ -1,5 +1,6 @@
 ---
 layout: distill
+
 title: Multi-Robot Pick and Place
 date: 2024-09-05 
 # description: an example of a blog post with some math
@@ -42,7 +43,7 @@ sampling-based motion planning constructs feasible paths for a robot by randomly
 
 - **RRT\*** is an optimized version of RRT. After a vertex has been connected to the cheapest neighbor, the neighbors are again examined. Neighbors are checked if being rewired to the newly added vertex will make their cost decrease. If the cost does indeed decrease, the neighbor is rewired to the newly added vertex.
 
-- **(Bi-RRT)** is an enhanced version of the RRT algorithm. Bi-RRT grows two trees simultaneously,i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
+- **Bi-RRT** is an enhanced version of the RRT algorithm. Bi-RRT grows two trees simultaneously,i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
 
 ### 2.2 optimization-based motion planning
 
@@ -168,25 +169,26 @@ Task planning refers to the process of determining the sequence of high-level ac
 Common methods for Task Sequence Planning include Greedy Search, Random Search, and Simulated Annealing Search. **Greedy search** is a locally optimal strategy that, at each step, selects the best immediate option without considering future consequences. **Random search** generates task sequences randomly, evaluates their performance, and selects the best-performing sequence. It does not rely on selecting the best option at each step, instead exploring different combinations of task sequences randomly. **Simulated annealing** is inspired by the physical process of annealing in metallurgy, the algorithm initially allows the acceptance of worse solutions (higher “temperature”) to escape local optima. As the search progresses, the “temperature” is gradually lowered, and the algorithm becomes more likely to accept only better solutions, converging toward a global optimum.
 
 
-However, in our work, there is no need for complex task planning. Instead, we directly use the sequence of objects as the task sequence. Here, a task represents the movement of a robotic arm from position A to position B. For example, moving the arm from the initial position to the position where it can grasp an object constitutes a task. The content of the task is determined by the joint configurations that correspond to the target positions of the robot's end effector. For example, if two objects need to be transported, this results in four tasks.
+However, in our work, there is no need for complex task planning. Instead, we directly use **the sequence of objects as the task sequence**. Here, a task represents the movement of a robotic arm from position A to position B. For example, moving the arm from the initial position to the position where it can grasp an object constitutes a task. The content of the task is determined by the joint configurations that correspond to the target positions of the robot's end effector. For example, if two objects need to be transported, this results in four tasks.
 
 
 ### 3.3 Motion Planning
 
+To implement motion planning, the process is divided into three main steps. First, the robot's inverse kinematics are calculated based on the initial and target positions of the objects. Next, using the results from the inverse kinematics, the path for the first robot is planned, allowing it to approach and grasp the object. Finally, the path for the second robot is planned based on the trajectory of the first robot.
 
-In this project, we use the **KOMO** optimizer to solve the inverse kinematics:
+### 3.3.1 Calculating Inverse Kinematics
 
-We can configure the optimizer using the skeleton framework: {1., 1., SY_touch, {pen_tip_0, obj}}: **‘1.’** represents the timestep, **'SY_touch'** indicates contact with the target, can be replaced with other types of constraints, such as **SY_stable**, which indicates being stationary relative to the target, **'pen_tip'** represents the robot's end-effector, **'obj'** represents the target.
+In this step, we use the **KOMO** optimizer to solve the inverse kinematics:
+
+We can configure the optimizer using the skeleton framework: **‘1.’** represents the timestep, **'SY_touch'** indicates contact with the target, can be replaced with other types of constraints, such as **SY_stable**, which indicates being stationary relative to the target, **'pen_tip'** represents the robot's end-effector, **'obj'** represents the target. And at this stage, since we need to ensure that the two robots do not collide, we configure both robots simultaneously when setting up KOMO.
 
 Additionally, we can use **addObjective** to add extra constraints, such as ensuring the distance between the end-effector and the object is zero, or enforcing that the end-effector remains perpendicular to the object's surface.
 
 ```c++
-
 Skeleton S = {
     {1., 1., SY_touch, {pen_tip_0, obj}},
     {1., 1., SY_touch, {pen_tip_1, obj}},
     {1., 2., SY_stable, {pen_tip_0, obj}},
-    {1., 2., SY_stable, {pen_tip_1, obj}},
     {2., 2., SY_poseEq, {obj, goal}},
 };
 komo.setSkeleton(S);
@@ -194,11 +196,12 @@ komo.setSkeleton(S);
 komo.addObjective({1.,1.}, FS_distance, {obj, STRING(robots[0] << "pen_tip")}, OT_ineq, {1e1},{-0.0}); 
 komo.addObjective({1.,1.}, FS_distance, {obj, STRING(robots[1] << "pen_tip")}, OT_ineq, {1e1},{-0.0}); 
 ```
+### 3.3.2 Path planning and grasping for fisrt robot
 
+**Path planning** is implemented using two methods: one based on the KOMO optimizer, and the other using ST-RRT*.
 
-**Path planning** is implemented using two methods: one based on the KOMO optimizer, and the other using bi-RRT.
+- The **KOMO optimizer** solves the problem by using the provided initial **q0** and target positions **q1**, while setting velocity and acceleration constraints. In this work, the second-order KOMO is used, meaning we take both velocity and acceleration into account during the motion planning process.
 
-The **KOMO optimizer** solves the problem by using the provided initial and target positions, while setting velocity and acceleration constraints.
 ```c++
 OptOptions options;
 options.stopIters = 100;  // Set the maximum number of iterations.
@@ -211,118 +214,171 @@ komo.add_collision(true, .001, 1e1);  //set collision detection
 komo.addObjective({1}, FS_qItself, {}, OT_eq, {1e2}, q1); // set goal position q1
 komo.addObjective({0.95, 1.0}, FS_qItself, {}, OT_eq, {1e1}, {},1); // speed slow at end
 komo.addObjective({0.95, 1.0}, FS_qItself, {}, OT_eq, {1e1}, {}, 2); // acceleration slow at end
-
 komo.run(options);
 // get the path from KOMO
 arr path(ts.N, q0.N);
 for (uint j = 0; j < ts.N; ++j) {
 path[j] = komo.getPath_q(j);
 };
-
 ```
 
-The RRT path planner generates the path based on the initial and target positions provided by the KOMO optimizer.
-```c++
-TaskPart rrt_path = plan_in_animation_rrt(A, C, t0, q0, q1, time_lb, prefix); // q0 is start configuration of joints, qi is goal configuration of joints
-```
+- The **ST-RRT\*** path planner generates the path based on the initial and target positions provided by the KOMO optimizer.
 
-By using these two planners, a robot-arm's movement path can be obtained in a straightforward and efficient manner.
+{% include figure.liquid loading="eager" path="assets/img/STRRT CODE.png" class="img-fluid rounded z-depth-1" %}
 
-However, because the simulation framework defines object connections based on a tree structure where each node can only have one parent and one child, this restricts each object to being linked to only one end-effector at a time. For example, place the object on the table,
+
+- For **grasping**, because the simulation framework defines object connections based on a tree structure where each node can only have one parent and one child, this restricts each object to being linked to only one end-effector at a time. Therefore, the object grasping is only handled by the first robot.
 
 ```c++
 auto to = CPlanner[obj];
-auto from = CPlanner["table_base"];
+auto from = CPlanner["pen_tip"]; //end effector
 to->unLink();
 to->linkFrom(from, true);
 ```
 
+### 3.3.3 Path planning for second robot
 
-Therefore, our solution is to use the target positions generated by the KOMO optimizer to determine the relative positions of the two robotic arms, and let second arm perform as pseudo-grasp.
+{% include figure.liquid loading="eager" path="assets/img/transformation.png" class="img-fluid rounded z-depth-1" %}
+
+At this stage, we first need to calculate the relative positions $$^{r1}P$$ of the two end-effectors during object grasping, based on the initial states of both robots generated by KOMO.
+
+$$
+^{r_1}P = -^{w}r_{r_1} + ^{r_1}R_{w}\ ^{w}P
+$$
+
+Subsequently, based on the rotation matrix $$^{w}R_{r_1} $$ and coordinates $$^{w}r_{r_1} $$ of the end-effector from the path of the first robot, the coordinates $$^{w}P$$ of the end-effector for the second robot can be determined, which are essentially the waypoints.
 
 $$
 \begin{aligned}
-^{w}P = ^{w}r_{r1} + ^{w}R_{r1}\ ^{r1}P
+^{w}P = ^{w}r_{r_1} + ^{w}R_{r_1}\ ^{r_1}P
 \end{aligned}
 $$
 
-Let $$^{r1}P$$ represent the relative displacement between two end effectors. By obtaining the coordinates $$^{w}r_{r1}$$ and rotation matrix $$^{w}R_{r1}$$ of the first end effector, we can determine the coordinates of the second end effector $$^{w}P$$.
-
-<!-- <div class="col-sm mt-3 mt-md-0"> -->
-{% include figure.liquid loading="eager" path="assets/img/transformation.png" class="img-fluid rounded z-depth-1" %}
-<!-- </div> -->
 
 ```c++
-if(i==0){ // get the grasp position of robot 1
-    to->unLink();
-    to->linkFrom(from, true);
-    r0_b =  CPlanner[pen_tip]->getPosition();
-    rotationmantix = CPlanner[pen_tip]->getRotationMatrix();
-    }
-    else{ // get the grasp position of robot 2
-    r0_1 = get_r_0_1(r0_b,rotationmantix, CPlanner[pen_tip]->getPosition()); // obtain the relative positions
-    }
-
-```
-
-
-Once the relative positions of the two end-effectors are determined, we can calculate the position of the second end-effector based on the path of the first one. Then, by using KOMO to compute the inverse kinematics, we obtain the angles for each joint.
-
-```c++
-uint size_of_path =  paths[sequence[0].first].back().path.N /7;   // het the size of path from first robot
+uint size_of_path =  paths[sequence[0].first].back().path.N /7;
 arr t_a1;
-arr path_a1(0u,paths[sequence[0].first].back().path.d1);   // define the path for second robot
+arr waypoints(0u,3);        // buffer for waypoints
 CPlanner.setJointState(paths[robot][0].path[-1]);
 for(uint i = 0; i<size_of_path; i++){
-    auto r0b = paths[sequence[0].first][1].path[i];
+    auto r0 = paths[sequence[0].first][1].path[i];
     auto t = paths[sequence[0].first].back().t(i);
-    CTest.setJointState(r0b);
+    CTest.setJointState(r0);
     const auto pen_tip =  STRING(sequence[0].first << "pen_tip");
-    auto _r0_b = CTest[pen_tip]->getPosition();
+    auto p_0 = CTest[pen_tip]->getPosition();
     auto rotationmatrix = CTest[pen_tip]->getRotationMatrix();
-    auto _goal_pose = get_trans_position(_r0_b,rotationmatrix,r0_1);
-    auto goal_pose_= get_position(CPlanner,robot,_goal_pose);     // use KOMO to compute the inverse kinematics
-    CPlanner.setJointState(goal_pose_);
+    auto _goal_pose = get_trans_position(p_0,rotationmatrix,p_0_1);
+    waypoints.append(_goal_pose);
     t_a1.append(t);
-    path_a1.append(goal_pose_);
-
 }
-TaskPart path_(t_a1,path_a1);
-path_.has_solution=true;
+auto path_a1 = get_path_from_waypoints(CPlanner,robot, waypoints);
 ```
-## Result
 
-In our tests, we found that when both RRT and KOMO can find a path, the path generated by KOMO is usually shorter,
 
-| Method      | path1 |path2 | path3 |path4 
+Once we have the waypoints for the second robot, we can use KOMO to generate a path that follows these waypoints.
+```c++
+
+auto get_path_from_waypoints(rai::Configuration &C, const std::string &robot, const arr waypoints) {
+  for(uint i=0; i<waypoints.d0;i++){    // add waypoints to frame
+    auto waypoint = STRING("waypoint"<<i);
+    C.addFrame(waypoint);
+    arr size;
+    size.append(0.1);
+    C.getFrame(waypoint)->setShape(rai::ShapeType::ST_marker,size);
+    C.getFrame(waypoint)->setPosition(waypoints[i]);
+  }
+  setActive(C, robot);
+  const auto home = C.getJointState();
+  OptOptions options;
+  options.stopIters = 100;
+  options.damping = 1e-3;
+  KOMO komo;
+  komo.verbose = 0;
+  komo.setModel(C, true);
+  komo.setDiscreteOpt(waypoints.d0);
+  for(uint i=0; i<waypoints.d0;i++){  // add the waypoints to komo
+    auto waypoint = STRING("waypoint"<<i);
+    komo.addObjective({double(i+1)},FS_positionDiff,{STRING(robot << "pen_tip"), waypoint},OT_eq,{1e1});
+  }
+  arr q;
+  komo.run_prepare(0.0, true);
+  komo.run(options);
+  komo.optimize();
+  arr path(waypoints.d0, 7);
+  for (uint j = 0; j < 10; ++j) {
+    path[j] = komo.getPath_q(j);
+  }
+  return path;
+}
+```
+
+---
+
+## 4. Result
+
+
+During the testing phase, we created four scenarios: transporting a single object, transporting multiple objects, stacking and transporting objects, and obstacle avoidance. For each scenario, we applied both KOMO and ST-RRT* for motion planning. 
+
+From the table below, it can be seen that when both methods are able to find a valid path, KOMO consistently produces shorter paths than ST-RRT*. However, ST-RRT* is more versatile, as there are certain scenarios where KOMO fails to find a valid path.
+
+### Table1: path length Comparison
+
+| Method      | task1 |task2 | task3 |task4 
 |-----------|-----|-----------|-------|
-| KOMO     | 30  | 111  | 153 | 182
-| RRT      | 31  | 136 | 171 | 185
+| KOMO     | 129  | 203  | 311 | 134
+| RRT      | 131  | 221 | 315 | 144
 
 
-
-In the animation below, the left side shows the path generated by KOMO, while the right side shows the path generated by RRT. We can observe that the path generated by KOMO is faster than the one generated by RRT.
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
-        {% include video.liquid path="assets/video/blog1.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
+        {% include video.liquid path="assets/video/collaboration_1.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
+        <h10>collaboration pick and place one box</h10>
     </div>
     <div class="col-sm mt-3 mt-md-0">
-        {% include video.liquid path="assets/video/blog2.mp4" class="img-fluid rounded z-depth-1" controls=true %}
+        {% include video.liquid path="assets/video/collaboration_2.mp4" class="img-fluid rounded z-depth-1" controls=true %}
+        <h10>collaboration pick and place two boxes</h10>
     </div>
 </div>
-
-
-In addition, we also tested the obstacle avoidance functionality of this path planner and found that it effectively avoids obstacles during path planning. Below are some of our simulation test videos.
 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/stacking_co_3.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
+        <h10>collaboration stacking three boxes</h10>
     </div>
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/cooperation_4.mp4" class="img-fluid rounded z-depth-1" controls=true %}
+        <h10>collaboration pick and place with obstacle</h10>
+
     </div>
 </div>
 
-## Conclusion
+<div class="row mt-3">
+    <div class="col-sm mt-3 mt-md-0">
+        {% include video.liquid path="assets/video/collaboration_st_rrt.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
+        <h10>no vaild path by using komo</h10>
+    </div>
+</div>
 
-The KOMO solver can efficiently compute inverse solutions and plan paths, but there are still some scenarios where it fails to find a valid solution. Additionally, while our method allows both robotic arms to grasp an object simultaneously, the second arm is performing a pseudo-grasp, which causes rotation between the end-effector and the object during movement. This aspect can be improved in future work.
+## 5. Conclusion
+
+Here, we summarize the content of the current work and some of its limitations. Additionally, we outline potential future directions closely related to this research.
+
+### 5.1 Summary
+To plan coordinated motion, we first plan the movement of the first arm and save its waypoints. Then, based on the relative transformation between the two end-effectors, we obtain the waypoints for the second arm and use KOMO to follow these waypoints. For path planning, we employed both KOMO and ST-RRT methods, revealing some differences in their characteristics. Additionally, we implemented various types of tasks in a simulated environment.
+
+### 5.2 Limitations and future works
+
+- Since the grasping in the simulation environment is based on a link framework, real grasping was not implemented. As a result, the second end-effector tends to rotate relative to the object during movement. In the future, additional constraints can be applied to the second end-effector, and real grasping can be achieved through integration with a perception module.
+
+- Currently, the path planning approach involves first planning the path for the first robot arm and then using this path to plan the path for the second robot arm. This method has limitations in obstacle avoidance, as it does not consider the task space of both arms simultaneously. Future work could explore simultaneous path planning for both robot arms to enable more flexible and effective operations.
+
+
+## References
+
+[1] Toussaint M. Newton methods for k-order markov constrained motion problems[J]. arXiv preprint arXiv:1407.0414, 2014.
+
+[2] Zucker M, Ratliff N, Dragan A D, et al. Chomp: Covariant hamiltonian optimization for motion planning[J]. The International journal of robotics research, 2013, 32(9-10): 1164-1193.
+
+[3]Kalakrishnan M, Chitta S, Theodorou E, et al. STOMP: Stochastic trajectory optimization for motion planning[C]//2011 IEEE international conference on robotics and automation. IEEE, 2011: 4569-4574.
+
+[4]Grothe F, Hartmann V N, Orthey A, et al. St-rrt*: Asymptotically-optimal bidirectional motion planning through space-time[C]//2022 International Conference on Robotics and Automation (ICRA). IEEE, 2022: 3314-3320.
