@@ -332,7 +332,7 @@ From the table below, it can be seen that when both methods are able to find a v
 | Method      | task1 |task2 | task3 |task4 
 |-----------|-----|-----------|-------|
 | KOMO     | 129  | 203  | 311 | 134
-| RRT      | 131  | 221 | 315 | 144
+| ST-RRT\*      | 131  | 221 | 315 | 144
 
 
 From the video, we can see that whether it's object transportation or stacking, the planner is able to successfully find efficient paths while avoiding obstacles. However, we also observed that in certain scenarios, only ST-RRT* could find a valid path, whereas KOMO could not.
