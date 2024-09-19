@@ -19,6 +19,12 @@ toc:
         - name: optimization-based motion planning
         - name: KOMO and ST-RRT*
   - name: Implementation
+    subsections:
+      - name: Scene Setup
+      - name: Task Planning
+      - name: Motion Planning
+  - name: Result
+  - name: Conclusion
 ---
 
 
@@ -27,7 +33,7 @@ toc:
 
 In certain robotic applications, there are scenarios where a single robotic arm may struggle to perform tasks, such as handling a large object or a flexible item. In such cases, two or more robotic arms need to collaborate in order to accomplish the task efficiently.
 
-In this work, we assume the use of two robotic arms working collaboratively to perform motion planning based on the given initial and target positions of the object to be grasped. Additionally, due to limitations of the simulation framework, the grasping is accomplished through a linking mechanism. In the environmental setup, we also assume that the obstacles remain stationary.
+In this work, we assume the use of two robotic arms working collaboratively to perform motion planning based on the given initial and target positions of the object to be grasped. Additionally, due to the limitations of the simulation framework, object grabbing is implemented through a linking framework rather than actual physical grasping. To test whether the motion planning algorithm can successfully avoid obstacles, we have also introduced a fixed obstacle for testing purposes.
 
 ---
 
@@ -329,6 +335,8 @@ From the table below, it can be seen that when both methods are able to find a v
 | RRT      | 131  | 221 | 315 | 144
 
 
+From the video, we can see that whether it's object transportation or stacking, the planner is able to successfully find efficient paths while avoiding obstacles. However, we also observed that in certain scenarios, only ST-RRT* could find a valid path, whereas KOMO could not.
+
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/collaboration_1.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
@@ -364,7 +372,7 @@ From the table below, it can be seen that when both methods are able to find a v
 Here, we summarize the content of the current work and some of its limitations. Additionally, we outline potential future directions closely related to this research.
 
 ### 5.1 Summary
-To plan coordinated motion, we first plan the movement of the first arm and save its waypoints. Then, based on the relative transformation between the two end-effectors, we obtain the waypoints for the second arm and use KOMO to follow these waypoints. For path planning, we employed both KOMO and ST-RRT methods, revealing some differences in their characteristics. Additionally, we implemented various types of tasks in a simulated environment.
+To coordinate the motion planning, we first plan the movement of the first arm and save its waypoints. Then, based on the relative transformation between the two end-effectors, we generate the waypoints for the second arm and use KOMO to follow these waypoints. We designed various test scenarios for this approach, such as object transportation, stacking, and obstacle avoidance, all of which were successfully executed. For path planning, we compared two methods: KOMO and ST-RRT*. Our comparison revealed some differences between their characteristics. In general, KOMO tends to produce shorter paths, but its applicability is not as robust as ST-RRT*, as there are cases where KOMO fails to find a valid path.
 
 ### 5.2 Limitations and future works
 
