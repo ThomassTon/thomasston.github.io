@@ -325,7 +325,7 @@ auto get_path_from_waypoints(rai::Configuration &C, const std::string &robot, co
 
 During the testing phase, we created four scenarios: transporting a single object, transporting multiple objects, stacking and transporting objects, and obstacle avoidance. For each scenario, we applied both KOMO and ST-RRT* for motion planning. 
 
-From the table below, it can be seen that when both methods are able to find a valid path, KOMO consistently produces shorter paths than ST-RRT*. However, ST-RRT* is more versatile, as there are certain scenarios where KOMO fails to find a valid path.
+From the table below, it can be seen that when both methods are able to find a valid path, KOMO consistently produces shorter paths than ST-RRT\*. However, ST-RRT* is more versatile, as there are certain scenarios where KOMO fails to find a valid path.
 
 ### Table1: path length Comparison
 
@@ -372,7 +372,7 @@ From the video, we can see that whether it's object transportation or stacking, 
 Here, we summarize the content of the current work and some of its limitations. Additionally, we outline potential future directions closely related to this research.
 
 ### 5.1 Summary
-To coordinate the motion planning, we first plan the movement of the first arm and save its waypoints. Then, based on the relative transformation between the two end-effectors, we generate the waypoints for the second arm and use KOMO to follow these waypoints. We designed various test scenarios for this approach, such as object transportation, stacking, and obstacle avoidance, all of which were successfully executed. For path planning, we compared two methods: KOMO and ST-RRT*. Our comparison revealed some differences between their characteristics. In general, KOMO tends to produce shorter paths, but its applicability is not as robust as ST-RRT*, as there are cases where KOMO fails to find a valid path.
+To coordinate the motion planning, we first plan the movement of the first arm and save its waypoints. Then, based on the relative transformation between the two end-effectors, we generate the waypoints for the second arm and use KOMO to follow these waypoints. We designed various test scenarios for this approach, such as object transportation, stacking, and obstacle avoidance, all of which were successfully executed. For path planning, we compared two methods: KOMO and ST-RRT\*. Our comparison revealed some differences between their characteristics. In general, KOMO tends to produce shorter paths, but its applicability is not as robust as ST-RRT\*, as there are cases where KOMO fails to find a valid path.
 
 ### 5.2 Limitations and future works
 
