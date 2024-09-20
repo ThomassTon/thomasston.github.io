@@ -27,7 +27,9 @@ toc:
   - name: Conclusion
 ---
 
+Code Link: [https://github.com/ThomassTon/irobman_lab](https://github.com/ThomassTon/irobman_lab)
 
+<!-- --- -->
 
 ## 1. Introduction
 
@@ -38,39 +40,39 @@ In this work, we assume the use of two robotic arms working collaboratively to p
 ---
 
 ## 2. Background
-Motion planning is the process of determining a feasible path or sequence of movements for a robot (or other agents) to achieve a specific task while avoiding obstacles and respecting constraints like joint limits, collision avoidance, and smoothness of the motion.
+Motion planning is used for determining a feasible path or sequence of movements for a robot (or other agents) to achieve a specific task while avoiding obstacles and respecting constraints like joint limits, collision avoidance, and smoothness of the motion.
 
 Motion planning can be broadly categorized into two types: optimization-based methods and sampling-based methods.
 
 ### 2.1 sampling-based motion planning
-sampling-based motion planning constructs feasible paths for a robot by randomly sampling points in the robot's configuration space (C-space) and connecting these points to form a valid path from the start to the goal, common approaches include RRT, RRT*, and Bi-RRT.
+Sampling-based motion planning constructs feasible paths for a robot by randomly sampling points in the robot's configuration space (C-space) and connecting these points to form a valid path from the start to the goal, common approaches include RRT[1], RRT*[2], and Bi-RRT[3].
 
 - **RRT** incrementally builds a tree-like structure that explores the space by randomly sampling points and connecting them to the existing tree. Thereby finding a collision-free path. With a sufficient number of samples, it's possible to find a path, though it may not necessarily be the optimal one.
 
 - **RRT\*** is an optimized version of RRT. After a vertex has been connected to the cheapest neighbor, the neighbors are again examined. Neighbors are checked if being rewired to the newly added vertex will make their cost decrease. If the cost does indeed decrease, the neighbor is rewired to the newly added vertex.
 
-- **Bi-RRT** is an enhanced version of the RRT algorithm. Bi-RRT grows two trees simultaneously,i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
+- **Bi-RRT** is an enhanced version of the RRT algorithm. Bi-RRT grows two trees simultaneously, i.e., One tree starts from the initial position of the robot, the other tree starts from the goal position. 
 
 ### 2.2 optimization-based motion planning
 
-Instead of searching for a path first (like in sampling-based methods), the optimization-based motion planning optimizes the motion directly by minimizing or maximizing a specific objective function, such as minimizing travel time, energy, or avoiding obstacles. Common optimization-based methods include KOMO, CHOMP, and STOMP. 
+Instead of searching for a path first (like in sampling-based methods), the optimization-based motion planning optimizes the motion directly by minimizing or maximizing a specific objective function, such as minimizing travel time, energy, or avoiding obstacles. Common optimization-based methods include KOMO, CHOMP and STOMP. 
 
-- **KOMO** means k-order markov optimization. KOMO is a way to formulate path optimization problems.[1] 
+- **KOMO**[4] means k-order markov optimization. KOMO is a way to formulate path optimization problems.
 
-- **CHOMP (Covariant Hamiltonian Optimization for Motion Planning)** is a method for trajectory optimization invariant to reparametrization. CHOMP uses functional gradient techniques to iteratively improve the quality of an initial trajectory, optimizing a functional that trades off between a smoothness and an obstacle avoidance component.[2]
+- **CHOMP (Covariant Hamiltonian Optimization for Motion Planning)**[5] is a method for trajectory optimization invariant to reparametrization. CHOMP uses functional gradient techniques to iteratively improve the quality of an initial trajectory, optimizing a functional that trades off between a smoothness and an obstacle avoidance component.
 
-- **STOMP** is a stochastic trajectory optimazation framework. The approach relies on generating nosiy trajectories to explore the space around an initial trajectory, which are then combined to produced an updated trajectory wit lower cost.[3]
+- **STOMP**[6] is a stochastic trajectory optimazation framework. The approach relies on generating nosiy trajectories to explore the space around an initial trajectory, which are then combined to produced an updated trajectory wit lower cost.
 
 
 
 
 ### 2.3 KOMO and ST-RRT*
 
-In this project, we utilized two motion planning methods: one is the optimization-based KOMO, and the other is the sampling-based ST-RRT*.
+In this project, we utilized two motion planning methods: one is the optimization-based KOMO, and the other is the sampling-based ST-RRT*[7].
 
 
 ### 2.3.1 KOMO
-**k-order Markov Optimization** is a method used in decision-making processes where the current decision depends not just on the immediate previous state (as in a first-order Markov process) but on a sequence of previous states, up to k steps in the past:
+**Newton methods for k-order Markov Optimization** is a method used in decision-making where the current decision depends not just on the immediate previous state (as in a first-order Markov process) but on a sequence of previous states, up to k steps in the past:
 
 $$
 \min_{x_{0:T}} \sum_{t=0}^{T} f_t(x_{t-k:t})^\top f_t(x_{t-k:t}) + \sum_{t,t'} k(t,t') x_t^\top x_{t'}
@@ -124,8 +126,10 @@ $$
 \min_{\theta_{t}, \theta_{t-1}, \theta_{t-2}} J
 $$
 
+In this work, KOMO will be primarily used in three areas: calculating inverse kinematics, smoothing the path, and generating the optimal path.
+
 ### 2.3.2 ST-RRT*
-ST-RRT* [4]is an advanced motion planning algorithm specifically designed for dynamic environments, where both spatial and temporal dimensions need to be considered. Its primary goal is to find paths that satisfy velocity constraints while minimizing arrival time. 
+ST-RRT*[4] is an advanced motion planning algorithm specifically designed for dynamic environments, where both spatial and temporal dimensions need to be considered. Its primary goal is to find paths that satisfy velocity constraints while minimizing arrival time. 
 
 Unlike traditional methods that only plan in a configuration space (Q), ST-RRT* adds a time dimension, forming a space-time state space denoted as $$X = Q \times T$$, where $$Q$$ represents the configuration space and $$T$$ represents the time dimension.
 
@@ -135,7 +139,7 @@ ST-RRT* builds on the dual-tree RRT-Connect framework but introduces several key
 
 - **Conditional Sampling:** Only the intersection of start and goal velocity cones is sampled. This greatly improves efficiency by reducing unnecessary exploration of infeasible areas.
 
-- **Simplified Rewiring:** Like RRT*, ST-RRT* optimizes paths by rewiring nodes in the tree. After extending the tree with a new node x_new, the goal tree is rewired to ensure that the path to the goal minimizes arrival time.
+- **Simplified Rewiring:** Like RRT\*, ST-RRT\* optimizes paths by rewiring nodes in the tree. After extending the tree with a new node x_new, the goal tree is rewired to ensure that the path to the goal minimizes arrival time.
 
 As shown in the figure below, the orange area represents the goal region, and the blue dashed line is an initial estimate of the feasible goal time:
 - (a) Using the initial batch of samples, no solution was found.
@@ -151,12 +155,12 @@ As shown in the figure below, the orange area represents the goal region, and th
 
 ## 3. Implementation
 
-In this section, we will introduce how to achieve dual-arm collaborative object transportation. The process can be divided into three main steps: scene setup, task planning, and motion planning.
+In this section, we will introduce how to achieve dual-arm collaborative object transportation. It can be divided into three main steps: scene setup, task planning, and motion planning.
 
 ### 3.1 Scene Setup
 Here, we will set the initial position and target location of the object to be grasped, as well as the fixed positions of any obstacles. Additionally, the positions of the two robots need to be defined. Typically, the robots are placed at a slightly greater distance from each other to prevent collisions while grasping the same object.
 
-In this case, the first three elements of Q represent the displacement coordinates along the x, y, and z axes, while the last four elements represent the rotation angles using quaternions. Additionally, setting `contact` to 1 enables collision detection.
+In this case, the first three elements of **Q** represent the displacement coordinates along the x, y, and z axes, while the last four elements represent the rotation angles using quaternions. Additionally, setting **contact** to 1 enables collision detection.
 
 ```PHP
 _obstacle (bin1){ type:ssBox, size:[0.2 0.2 0.1 .01], contact:1 Q:<[ -0, 0, 0.5, 1, 0, .0, 0]> color:[0.9, 0.9, 0.9, 1]}
@@ -170,7 +174,7 @@ obj1 (bin2){ joint:rigid type:ssBox, size:[0.1 0.1 0.1 .01], contact:1 Q:<[  -0.
 
 
 ### 3.2 Task Planning
-Task planning refers to the process of determining the sequence of high-level actions or tasks that a robot (or a group of robots) must perform to achieve a specific goal.
+Task planning refers to determin the sequence of high-level actions or tasks that a robot (or a group of robots) must perform to achieve a specific goal.
 
 Common methods for Task Sequence Planning include Greedy Search, Random Search, and Simulated Annealing Search. **Greedy search** is a locally optimal strategy that, at each step, selects the best immediate option without considering future consequences. **Random search** generates task sequences randomly, evaluates their performance, and selects the best-performing sequence. It does not rely on selecting the best option at each step, instead exploring different combinations of task sequences randomly. **Simulated annealing** is inspired by the physical process of annealing in metallurgy, the algorithm initially allows the acceptance of worse solutions (higher “temperature”) to escape local optima. As the search progresses, the “temperature” is gradually lowered, and the algorithm becomes more likely to accept only better solutions, converging toward a global optimum.
 
@@ -186,7 +190,7 @@ To implement motion planning, the process is divided into three main steps. Firs
 
 In this step, we use the **KOMO** optimizer to solve the inverse kinematics:
 
-We can configure the optimizer using the skeleton framework: **‘1.’** represents the timestep, **'SY_touch'** indicates contact with the target, can be replaced with other types of constraints, such as **SY_stable**, which indicates being stationary relative to the target, **'pen_tip'** represents the robot's end-effector, **'obj'** represents the target. And at this stage, since we need to ensure that the two robots do not collide, we configure both robots simultaneously when setting up KOMO.
+We can configure the optimizer using the skeleton framework: **Number** represents the timestep, **'SY_touch'** indicates contact with the target, can be replaced with other types of constraints, such as **SY_stable**, which indicates being stationary relative to the target, **'pen_tip'** represents the robot's end-effector, **'obj'** represents the target. And at this stage, since we need to ensure that the two robots do not collide, we configure both robots simultaneously when setting up KOMO.
 
 Additionally, we can use **addObjective** to add extra constraints, such as ensuring the distance between the end-effector and the object is zero, or enforcing that the end-effector remains perpendicular to the object's surface.
 
@@ -198,7 +202,6 @@ Skeleton S = {
     {2., 2., SY_poseEq, {obj, goal}},
 };
 komo.setSkeleton(S);
-// komo.addObjective({1.}, FS_vectorZ, {STRING(robots[0] << "pen")}, OT_sos, {1e1}, {0., 0., -1.});
 komo.addObjective({1.,1.}, FS_distance, {obj, STRING(robots[0] << "pen_tip")}, OT_ineq, {1e1},{-0.0}); 
 komo.addObjective({1.,1.}, FS_distance, {obj, STRING(robots[1] << "pen_tip")}, OT_ineq, {1e1},{-0.0}); 
 ```
@@ -206,7 +209,7 @@ komo.addObjective({1.,1.}, FS_distance, {obj, STRING(robots[1] << "pen_tip")}, O
 
 **Path planning** is implemented using two methods: one based on the KOMO optimizer, and the other using ST-RRT*.
 
-- The **KOMO optimizer** solves the problem by using the provided initial **q0** and target positions **q1**, while setting velocity and acceleration constraints. In this work, the second-order KOMO is used, meaning we take both velocity and acceleration into account during the motion planning process.
+- The **KOMO optimizer** solves the problem by using the provided initial **q0** and target positions **q1**, while setting velocity and acceleration constraints. In this work, the second-order KOMO is used, meaning we take both velocity and acceleration into account during the motion planning.
 
 ```c++
 OptOptions options;
@@ -228,10 +231,10 @@ path[j] = komo.getPath_q(j);
 };
 ```
 
-- The **ST-RRT\*** path planner generates the path based on the initial and target positions provided by the KOMO optimizer.
-
+- The **ST-RRT\*** path planner generates the path based on the initial and target positions provided by the KOMO optimizer. As shown in the pseudocode, ST-RRT* performs bidirectional random sampling in the configuration space based on the start position $$q_{start}$$ and the goal position $$q_{goal}$$, connecting paths and progressively expanding the search region to obtain a time-optimal, collision-free path.
 {% include figure.liquid loading="eager" path="assets/img/STRRT CODE.png" class="img-fluid rounded z-depth-1" %}
 
+- In addition, we need to consider the **time synchronization** between the two robotic arms. When planning the next task, the maximum completion time of the two arms from the previous task should be used as the starting time for the next task to ensure synchronization."
 
 - For **grasping**, because the simulation framework defines object connections based on a tree structure where each node can only have one parent and one child, this restricts each object to being linked to only one end-effector at a time. Therefore, the object grasping is only handled by the first robot.
 
@@ -329,7 +332,7 @@ From the table below, it can be seen that when both methods are able to find a v
 
 ### Table1: path length Comparison
 
-| Method      | task1 |task2 | task3 |task4 
+| Method      | Task1 |Task2 | Task3 |Task4 
 |-----------|-----|-----------|-------|
 | KOMO     | 129  | 203  | 311 | 134
 | ST-RRT\*      | 131  | 221 | 315 | 144
@@ -340,22 +343,22 @@ From the video, we can see that whether it's object transportation or stacking, 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/collaboration_1.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
-        <h10>collaboration pick and place one box</h10>
+        <h10>Task1: Collaborative grasp of a box using KOMO</h10>
     </div>
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/collaboration_2.mp4" class="img-fluid rounded z-depth-1" controls=true %}
-        <h10>collaboration pick and place two boxes</h10>
+        <h10>Task2: Collaborative grasp of two boxes using KOMO</h10>
     </div>
 </div>
 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/stacking_co_3.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
-        <h10>collaboration stacking three boxes</h10>
+        <h10>Task3: Collaborative stacking three boxes uisng KOMO</h10>
     </div>
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/cooperation_4.mp4" class="img-fluid rounded z-depth-1" controls=true %}
-        <h10>collaboration pick and place with obstacle</h10>
+        <h10>Task4: Collaborative grasp of a box while avoiding obstacles using KOMO</h10>
 
     </div>
 </div>
@@ -363,7 +366,7 @@ From the video, we can see that whether it's object transportation or stacking, 
 <div class="row mt-3">
     <div class="col-sm mt-3 mt-md-0">
         {% include video.liquid path="assets/video/collaboration_st_rrt.mp4" class="img-fluid rounded z-depth-1" controls=true autoplay=true %}
-        <h10>no vaild path by using komo</h10>
+        <h10>Task1: Collaborative grasp of a box using ST-RRT*</h10>
     </div>
 </div>
 
@@ -383,10 +386,16 @@ To coordinate the motion planning, we first plan the movement of the first arm a
 
 ## References
 
-[1] Toussaint M. Newton methods for k-order markov constrained motion problems[J]. arXiv preprint arXiv:1407.0414, 2014.
+[1] LaValle S. Rapidly-exploring random trees: A new tool for path planning[J]. Research Report 9811, 1998.
 
-[2] Zucker M, Ratliff N, Dragan A D, et al. Chomp: Covariant hamiltonian optimization for motion planning[J]. The International journal of robotics research, 2013, 32(9-10): 1164-1193.
+[2] Karaman S, Frazzoli E. Sampling-based algorithms for optimal motion planning[J]. The international journal of robotics research, 2011, 30(7): 846-894.
 
-[3]Kalakrishnan M, Chitta S, Theodorou E, et al. STOMP: Stochastic trajectory optimization for motion planning[C]//2011 IEEE international conference on robotics and automation. IEEE, 2011: 4569-4574.
+[3] LaValle S M, Kuffner Jr J J. Randomized kinodynamic planning[J]. The international journal of robotics research, 2001, 20(5): 378-400.
 
-[4]Grothe F, Hartmann V N, Orthey A, et al. St-rrt*: Asymptotically-optimal bidirectional motion planning through space-time[C]//2022 International Conference on Robotics and Automation (ICRA). IEEE, 2022: 3314-3320.
+[4] Toussaint M. Newton methods for k-order markov constrained motion problems[J]. arXiv preprint arXiv:1407.0414, 2014.
+
+[5] Zucker M, Ratliff N, Dragan A D, et al. Chomp: Covariant hamiltonian optimization for motion planning[J]. The International journal of robotics research, 2013, 32(9-10): 1164-1193.
+
+[6] Kalakrishnan M, Chitta S, Theodorou E, et al. STOMP: Stochastic trajectory optimization for motion planning[C]//2011 IEEE international conference on robotics and automation. IEEE, 2011: 4569-4574.
+
+[7] Grothe F, Hartmann V N, Orthey A, et al. St-rrt*: Asymptotically-optimal bidirectional motion planning through space-time[C]//2022 International Conference on Robotics and Automation (ICRA). IEEE, 2022: 3314-3320.
