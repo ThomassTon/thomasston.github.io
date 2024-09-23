@@ -27,7 +27,7 @@ toc:
   - name: Conclusion
 ---
 
-Code Link: [https://github.com/ThomassTon/irobman_lab](https://github.com/ThomassTon/irobman_lab)
+In the link below, you can find the code repository for this project: [https://github.com/ThomassTon/irobman_lab](https://github.com/ThomassTon/irobman_lab)
 
 <!-- --- -->
 
@@ -234,7 +234,9 @@ path[j] = komo.getPath_q(j);
 - The **ST-RRT\*** path planner generates the path based on the initial and target positions provided by the KOMO optimizer. As shown in the pseudocode, ST-RRT* performs bidirectional random sampling in the configuration space based on the start position $$q_{start}$$ and the goal position $$q_{goal}$$, connecting paths and progressively expanding the search region to obtain a time-optimal, collision-free path.
 {% include figure.liquid loading="eager" path="assets/img/STRRT CODE.png" class="img-fluid rounded z-depth-1" %}
 
-- In addition, we need to consider the **time synchronization** between the two robotic arms. When planning the next task, the maximum completion time of the two arms from the previous task should be used as the starting time for the next task to ensure synchronization."
+- In addition, we need to consider the **time synchronization** between the two robotic arms. When planning the next task, the maximum completion time of the two arms from the previous task should be used as the starting time for the next task to ensure synchronization.
+
+$$t_{start_{task+1}} = max(t_{end_{task}}^{robot1}, t_{end_{task}}^{robot2}) + 1$$
 
 - For **grasping**, because the simulation framework defines object connections based on a tree structure where each node can only have one parent and one child, this restricts each object to being linked to only one end-effector at a time. Therefore, the object grasping is only handled by the first robot.
 
