@@ -331,7 +331,7 @@ During the testing phase, we created four scenarios: transporting a single objec
 
 From the table below, it can be seen that when both methods are able to find a valid path, KOMO consistently produces shorter paths than ST-RRT\*. However, ST-RRT* is more versatile, as there are certain scenarios where KOMO fails to find a valid path.
 
-### Table1: path length Comparison
+### Table1: Path Length Comparison
 
 | Method      | Task1 |Task2 | Task3 |Task4 
 |-----------|-----|-----------|-------|
