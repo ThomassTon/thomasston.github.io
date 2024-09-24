@@ -26,12 +26,12 @@
       institution: Simulation, Systemoptimierung und Robotik (SIM), TU Darmstadt
       year: 09.2023 - 09.2024
       description:
-        - Simulation software development(Webots)
+        -  In a simulation environment(Webots), develop a collision alert feature and implement a crossing timer
     - title: research assistant
       institution: Intelligente Autonome Systeme (IAS), TU Darmstadt
       year: 10.2023 - 03.2024
       description:
-        - For Robot Learning Course
+        - RA for Robot Learning Course, responsible for grading assignments and providing clarification to students.
 
 # - title: Open Source Projects
 #   type: time_table
@@ -62,4 +62,4 @@
 - title: Hobbies
   type: list
   contents:
-    - Bike, F1
+    - Cycling, F1
