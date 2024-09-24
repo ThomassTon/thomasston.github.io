@@ -11,20 +11,13 @@ featured: true
 
 
 toc:
-  - name: Introduction
-  - name: Background
+  - name: 1. Introduction
+  - name: 2. Background
     # - name: optimization-based methods
-    subsections:
-        - name: sampling-based motion planning
-        - name: optimization-based motion planning
-        - name: KOMO and ST-RRT*
-  - name: Implementation
-    subsections:
-      - name: Scene Setup
-      - name: Task Planning
-      - name: Motion Planning
-  - name: Result
-  - name: Conclusion
+  - name: 3. Implementation
+
+  - name: 4. Result
+  - name: 5. Conclusion
 ---
 
 In the link below, you can find the code repository for this project: [https://github.com/ThomassTon/irobman_lab](https://github.com/ThomassTon/irobman_lab)
