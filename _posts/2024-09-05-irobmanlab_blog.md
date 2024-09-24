@@ -316,9 +316,8 @@ auto get_path_from_waypoints(rai::Configuration &C, const std::string &robot, co
   komo.run(options);
   komo.optimize();
   arr path(waypoints.d0, 7);
-  for (uint j = 0; j < 10; ++j) {
-    path[j] = komo.getPath_q(j);
-  }
+  uint len_path = komo.getPath_q().d0;
+  for (uint j = 0; j < len_path; ++j) {
   return path;
 }
 ```
