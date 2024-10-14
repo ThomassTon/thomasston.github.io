@@ -143,6 +143,9 @@ As shown in the figure below, the orange area represents the goal region, and th
 <div class="col-sm mt-3 mt-md-0">
         {% include figure.liquid loading="eager" path="assets/img/st-rrt.png" class="img-fluid rounded z-depth-1" %}
 </div>
+<div class="caption">
+    ST-RRT*[7]
+</div>
 
 ---
 
