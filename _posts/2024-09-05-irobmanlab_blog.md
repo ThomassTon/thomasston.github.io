@@ -122,7 +122,7 @@ $$
 In this work, KOMO will be primarily used in three areas: calculating inverse kinematics, smoothing the path, and generating the optimal path.
 
 ### 2.3.2 ST-RRT*
-ST-RRT*[4] is an advanced motion planning algorithm specifically designed for dynamic environments, where both spatial and temporal dimensions need to be considered. Its primary goal is to find paths that satisfy velocity constraints while minimizing arrival time. 
+ST-RRT* is an advanced motion planning algorithm specifically designed for dynamic environments, where both spatial and temporal dimensions need to be considered. Its primary goal is to find paths that satisfy velocity constraints while minimizing arrival time. 
 
 Unlike traditional methods that only plan in a configuration space (Q), ST-RRT* adds a time dimension, forming a space-time state space denoted as $$X = Q \times T$$, where $$Q$$ represents the configuration space and $$T$$ represents the time dimension.
 
