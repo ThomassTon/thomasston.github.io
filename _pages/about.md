@@ -1,6 +1,6 @@
 ---
 layout: about
-title: about
+title: About me
 permalink: /
 # subtitle: <a href='#'>Affiliations</a>. Address. Contacts. Moto. Etc.
 
@@ -20,8 +20,9 @@ selected_papers: true # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
 ---
 
-Hi, I am a master's student at TU Darmstadt, currently studying Autonomous Systems and Robotics. 
+I am completing my Master’s degree in Autonomous Systems and Robotics at TU Darmstadt, where I have successfully defended my thesis on motion planning for dual-arm robots.
 
-My research interests focus on motion planning for dual-arm robots and mobile robotics. 
+My research interests include motion planning, control, and learning for robotic manipulation and navigation.
+I am currently seeking a Ph.D. position to further develop intelligent and adaptive robot behaviors.
 
-Additionally, I am a Formula 1 fan, and in my free time, I enjoy cycling.
+Beyond research, I am passionate about Formula 1 and enjoy cycling.

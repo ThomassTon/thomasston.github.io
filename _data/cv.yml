@@ -13,7 +13,7 @@
   contents:
     - title: Master Student in Autonomous Systems and Robotics
       institution: TU Darmstadt, Darmstadt, Germany
-      year: 2022-NOW
+      year: 2022-2025
     - title: Bachelor of Science in Electrical Engineering and Automation, outstanding graduates
       institution: Zhejiang University of Science & Technology, Hangzhou, China
       year: 2017-2021
@@ -22,12 +22,17 @@
 - title: Experience
   type: time_table
   contents:
-    - title: research assistant
+    - title: student research assistant
+      institution: Interactive Robot Perception & Learning (PEARL), TU Darmstadt
+      year: 10.2024 - 09.2025
+      description:
+        -  Multi-Robot constrained motion planning
+    - title: student research assistant
       institution: Simulation, Systemoptimierung und Robotik (SIM), TU Darmstadt
       year: 09.2023 - 09.2024
       description:
         -  In a simulation environment(Webots), develop a collision alert feature and implement a crossing timer
-    - title: research assistant
+    - title: student research assistant
       institution: Intelligente Autonome Systeme (IAS), TU Darmstadt
       year: 10.2023 - 03.2024
       description:
